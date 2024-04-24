@@ -4,9 +4,16 @@ import (
 	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/hrishikesh/hash/database"
 )
 
 func main() {
+
+	err := database.InitDB("password.db")
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
 
 	p := tea.NewProgram(initialModel())
 	if _, err := p.Run(); err != nil {
