@@ -76,3 +76,13 @@ func ReadOnePassword(id int) (PWItem, error) {
 	err := db.QueryRow("SELECT * FROM pwitems WHERE id = ?1", id).Scan(&p.ID, &p.Name, &p.Email, &p.Password)
 	return p, err
 }
+
+func UpdateOnePassword(id int, name string, email string, password []byte) error {
+	_, err := db.Exec("UPDATE pwitems SET name=?1, email=?2, password=?3 WHERE id=?4", name, email, password, id)
+	return err
+}
+
+func DeletePassword(id int) error {
+	_, err := db.Exec("DELETE FROM pwitems WHERE id=?1", id)
+	return err
+}

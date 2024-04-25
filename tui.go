@@ -155,7 +155,7 @@ func allPasswordView(m model) string {
 
 	}
 
-	sb.WriteString("ctrl+n Create new password")
+	sb.WriteString("ctrl+n Create new password ctrl+enter update ctrl+d delete ")
 
 	return sb.String()
 }
@@ -293,6 +293,17 @@ func allPasswordUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 
 		case tea.KeyCtrlN:
 			m.pageIndex = newPasswords
+		case tea.KeyCtrlD:
+			err := database.DeletePassword(m.allPassword[m.passwordIndex].ID)
+			if err != nil {
+				m.err = err
+				return m, nil
+			}
+			newAllPassword := make([]database.PWItem, 0)
+			newAllPassword = append(newAllPassword, m.allPassword[:m.passwordIndex]...)
+			newAllPassword = append(newAllPassword, m.allPassword[m.passwordIndex+1:]...)
+			m.allPassword = newAllPassword
+			return m, nil
 		}
 	}
 	return m, nil
