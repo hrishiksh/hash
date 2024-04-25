@@ -18,7 +18,6 @@ const (
 	newPasswords
 	viewPasswordIndex
 	updatePasswords
-	deletePasswords
 )
 
 var (
@@ -113,6 +112,8 @@ func (m model) View() string {
 		return newPasswordView(m)
 	case viewPasswordIndex:
 		return viewPasswordPage(m)
+	case updatePasswords:
+		return updatePasswordPage(m)
 	}
 	return fmt.Sprintln("No page selected")
 }
@@ -155,7 +156,7 @@ func allPasswordView(m model) string {
 
 	}
 
-	sb.WriteString("ctrl+n Create new password ctrl+enter update ctrl+d delete ")
+	sb.WriteString("ctrl+n Create new password ctrl+u update ctrl+d delete ")
 
 	return sb.String()
 }
@@ -175,6 +176,30 @@ func newPasswordView(m model) string {
 	var sb strings.Builder
 	sb.WriteString("🔑 Add new password\n\n")
 	for _, v := range m.txtInputs {
+		sb.WriteString(v.View())
+		sb.WriteString("\n")
+	}
+
+	sb.WriteString("\n")
+	if m.focusIndex == len(m.txtInputs) {
+		sb.WriteString(activeBtnStyle.Render("Save"))
+	} else {
+		sb.WriteString(btnStyle.Render("Save"))
+
+	}
+	sb.WriteString("\n")
+	sb.WriteString(displayMsgStyle.Render(m.displayMsg))
+	sb.WriteString(faintText.Render("\n(press ctrl+c or esc to exit)\n"))
+	sb.WriteString("\n")
+	return sb.String()
+}
+
+func updatePasswordPage(m model) string {
+	var sb strings.Builder
+	sb.WriteString("🔑 Update password\n\n")
+
+	for _, v := range m.txtInputs {
+
 		sb.WriteString(v.View())
 		sb.WriteString("\n")
 	}
@@ -214,6 +239,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return viewPasswordUpdate(msg, m)
 	case newPasswords:
 		return newPasswordUpdate(msg, m)
+	case updatePasswords:
+		return updatePasswordUpdate(msg, m)
 	}
 	return m, nil
 }
@@ -293,6 +320,37 @@ func allPasswordUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 
 		case tea.KeyCtrlN:
 			m.pageIndex = newPasswords
+
+		case tea.KeyCtrlU:
+			m.pageIndex = updatePasswords
+			encryptedPasswordHex := m.allPassword[m.passwordIndex].Password
+			encryptedPassword, err := hexToByte(encryptedPasswordHex)
+			if err != nil {
+				m.err = err
+				return m, nil
+			}
+			decryptPassword, ok := decryptMsg(encryptedPassword, m.secretKey)
+			if !ok {
+				m.err = errors.New("not decrypted")
+				return m, nil
+			}
+
+			m.allPassword[m.passwordIndex].Password = decryptPassword
+			cmds := make([]tea.Cmd, 3)
+
+			for i, v := range m.txtInputs {
+				switch i {
+				case 0:
+					v.SetValue(m.allPassword[m.passwordIndex].Name)
+				case 1:
+					v.SetValue(m.allPassword[m.passwordIndex].Email)
+				case 2:
+					v.SetValue(string(m.allPassword[m.passwordIndex].Password))
+				}
+
+				m.txtInputs[i], cmds[i] = v.Update(msg)
+			}
+			return m, tea.Batch(cmds...)
 		case tea.KeyCtrlD:
 			err := database.DeletePassword(m.allPassword[m.passwordIndex].ID)
 			if err != nil {
@@ -387,6 +445,71 @@ func newPasswordUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		m.txtInputs[i], cmds[i] = v.Update(msg)
 
 	}
+
+	return m, tea.Batch(cmds...)
+}
+
+func updatePasswordUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyDown:
+			if m.focusIndex >= len(m.txtInputs) {
+				m.focusIndex = 0
+			} else {
+				m.focusIndex++
+			}
+
+		case tea.KeyUp:
+			if m.focusIndex == 0 {
+				m.focusIndex = len(m.txtInputs)
+			} else {
+				m.focusIndex--
+			}
+
+		case tea.KeyEnter:
+			if m.focusIndex >= 2 {
+				encryptedPassword, err := encryptMessage([]byte(m.txtInputs[2].Value()), m.secretKey)
+				if err != nil {
+					return m, func() tea.Msg { return err }
+				}
+				database.UpdateOnePassword(m.allPassword[m.passwordIndex].ID, m.txtInputs[0].Value(), m.txtInputs[1].Value(), byteToHex(encryptedPassword))
+				if err != nil {
+					return m, func() tea.Msg { return err }
+				}
+				return m, tea.Quit
+			} else {
+				m.focusIndex++
+			}
+		}
+
+	case error:
+		m.err = msg
+		return m, nil
+	}
+
+	cmds := make([]tea.Cmd, 3)
+	for i, v := range m.txtInputs {
+		switch i {
+		case 0:
+			v.SetValue(m.allPassword[m.passwordIndex].Name)
+		case 1:
+			v.SetValue(m.allPassword[m.passwordIndex].Email)
+		case 2:
+			v.SetValue(string(m.allPassword[m.passwordIndex].Password))
+		}
+		if i == m.focusIndex {
+			v.Focus()
+		} else {
+			v.Blur()
+		}
+		m.txtInputs[i], cmds[i] = v.Update(msg)
+
+	}
+
+	m.allPassword[m.passwordIndex].Name = m.txtInputs[0].Value()
+	m.allPassword[m.passwordIndex].Email = m.txtInputs[1].Value()
+	m.allPassword[m.passwordIndex].Password = []byte(m.txtInputs[2].Value())
 
 	return m, tea.Batch(cmds...)
 }
