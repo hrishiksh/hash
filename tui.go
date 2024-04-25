@@ -155,6 +155,8 @@ func allPasswordView(m model) string {
 
 	}
 
+	sb.WriteString("ctrl+n Create new password")
+
 	return sb.String()
 }
 
@@ -163,7 +165,8 @@ func viewPasswordPage(m model) string {
 	sb.WriteString(m.allPassword[m.passwordIndex].Name)
 	sb.WriteString(fmt.Sprintf("\n\nEmail: %s\n", m.allPassword[m.passwordIndex].Email))
 	sb.WriteString(fmt.Sprintf("Password: %s", m.allPassword[m.passwordIndex].Password))
-
+	sb.WriteString("\n\n")
+	sb.WriteString("(ctrl+a decrypt · ← back)")
 	return sb.String()
 
 }
@@ -287,20 +290,39 @@ func allPasswordUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 			}
 		case tea.KeyEnter:
 			m.pageIndex = viewPasswordIndex
+
+		case tea.KeyCtrlN:
+			m.pageIndex = newPasswords
 		}
 	}
 	return m, nil
 }
 
 func viewPasswordUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
-	encryptedPassword := m.allPassword[m.passwordIndex].Password
-	decryptPassword, ok := decryptMsg(encryptedPassword, m.secretKey)
-	if !ok {
-		m.err = errors.New("Not decrypted")
-		return m, nil
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyCtrlA:
+			encryptedPasswordHex := m.allPassword[m.passwordIndex].Password
+			encryptedPassword, err := hexToByte(encryptedPasswordHex)
+			if err != nil {
+				m.err = err
+				return m, nil
+			}
+			decryptPassword, ok := decryptMsg(encryptedPassword, m.secretKey)
+			if !ok {
+				m.err = errors.New("not decrypted")
+				return m, nil
+			}
+
+			m.allPassword[m.passwordIndex].Password = decryptPassword
+			return m, nil
+
+		case tea.KeyLeft:
+			m.pageIndex = allPasswords
+		}
 	}
 
-	m.allPassword[m.passwordIndex].Password = decryptPassword
 	return m, nil
 
 }
@@ -329,7 +351,7 @@ func newPasswordUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 				if err != nil {
 					return m, func() tea.Msg { return err }
 				}
-				err = database.AddNewPassword(m.txtInputs[0].Value(), m.txtInputs[1].Value(), encryptedPassword)
+				err = database.AddNewPassword(m.txtInputs[0].Value(), m.txtInputs[1].Value(), byteToHex(encryptedPassword))
 				if err != nil {
 					return m, func() tea.Msg { return err }
 				}
