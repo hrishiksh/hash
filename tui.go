@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 
@@ -11,21 +12,36 @@ import (
 	"github.com/hrishikesh/hash/database"
 )
 
+const (
+	loginMasterPassword = iota
+	allPasswords
+	newPasswords
+	viewPasswordIndex
+	updatePasswords
+	deletePasswords
+)
+
 var (
-	btnStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF")).Background(lipgloss.Color("#7D56F4")).Padding(0, 1).Bold(true)
-	activeBtnStyle  = btnStyle.Copy().Background(lipgloss.Color("#5539a8"))
-	faintText       = lipgloss.NewStyle().Faint(true)
-	displayMsgStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#ef233c")).Bold(true)
+	btnStyle                    = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF")).Background(lipgloss.Color("#7D56F4")).Padding(0, 1).Bold(true)
+	activeBtnStyle              = btnStyle.Copy().Background(lipgloss.Color("#5539a8"))
+	faintText                   = lipgloss.NewStyle().Faint(true)
+	displayMsgStyle             = lipgloss.NewStyle().Foreground(lipgloss.Color("#ef233c")).Bold(true)
+	listItemStyle               = lipgloss.NewStyle().Padding(0, 1).Faint(true)
+	listItemHeaderStyle         = listItemStyle.Copy().Bold(true).UnsetFaint()
+	listItemSelectedStyle       = listItemStyle.Copy().BorderStyle(lipgloss.NormalBorder()).BorderLeft(true).BorderLeftForeground(lipgloss.Color("#7D56F4"))
+	listItemSelectedHeaderStyle = listItemSelectedStyle.Copy().Bold(true).UnsetFaint()
 )
 
 type model struct {
+	pageIndex                int
 	salt                     []byte
 	masterPasswordFocusIndex int
 	masterPassword           textinput.Model
 	secretKey                [32]byte
-	authenticated            bool
 	focusIndex               int
 	txtInputs                []textinput.Model
+	allPassword              []database.PWItem
+	passwordIndex            int
 	err                      error
 	displayMsg               string
 }
@@ -35,10 +51,11 @@ type saltFound []byte
 func initialModel() model {
 
 	m := model{
-		authenticated: false,
+		pageIndex:     loginMasterPassword,
 		focusIndex:    0,
 		txtInputs:     make([]textinput.Model, 3),
 		err:           errors.New(""),
+		passwordIndex: 0,
 	}
 
 	// setting master password text filed
@@ -72,6 +89,13 @@ func initialModel() model {
 		m.txtInputs[i] = t
 	}
 
+	// Getting all the password
+	var err error
+	m.allPassword, err = database.ReadAllPasswords()
+	if err != nil {
+		m.err = err
+	}
+
 	return m
 }
 
@@ -80,46 +104,88 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) View() string {
+	switch m.pageIndex {
+	case loginMasterPassword:
+		return loginMaterPasswordView(m)
+	case allPasswords:
+		return allPasswordView(m)
+	case newPasswords:
+		return newPasswordView(m)
+	case viewPasswordIndex:
+		return viewPasswordPage(m)
+	}
+	return fmt.Sprintln("No page selected")
+}
 
+func loginMaterPasswordView(m model) string {
 	var sb strings.Builder
-
-	if m.authenticated {
-		sb.WriteString("🔑 Add new password\n\n")
-		for _, v := range m.txtInputs {
-			sb.WriteString(v.View())
-			sb.WriteString("\n")
-		}
-
-		sb.WriteString("\n")
-		if m.focusIndex == len(m.txtInputs) {
-			sb.WriteString(activeBtnStyle.Render("Save"))
-		} else {
-			sb.WriteString(btnStyle.Render("Save"))
-
-		}
-		sb.WriteString("\n")
-		sb.WriteString(displayMsgStyle.Render(m.displayMsg))
-		sb.WriteString(faintText.Render("\n(press ctrl+c or esc to exit)\n"))
+	sb.WriteString("Login with your master password\n\n")
+	sb.WriteString(m.masterPassword.View())
+	sb.WriteString("\n\n")
+	if m.masterPasswordFocusIndex == 1 {
+		sb.WriteString(activeBtnStyle.Render("Submit"))
 
 	} else {
-		sb.WriteString("Login with your master password\n\n")
-		sb.WriteString(m.masterPassword.View())
-		sb.WriteString("\n\n")
-		if m.masterPasswordFocusIndex == 1 {
-			sb.WriteString(activeBtnStyle.Render("Submit"))
-
-		} else {
-			sb.WriteString(btnStyle.Render("Submit"))
-
-		}
-
-		sb.WriteString("\n")
-		sb.WriteString(displayMsgStyle.Render(m.displayMsg))
-		sb.WriteString(faintText.Render("\n(press ctrl+c or esc to exit)\n"))
+		sb.WriteString(btnStyle.Render("Submit"))
 
 	}
 
-	sb.WriteString(m.err.Error())
+	sb.WriteString("\n")
+	sb.WriteString(displayMsgStyle.Render(m.displayMsg))
+	sb.WriteString(faintText.Render("\n(press ctrl+c or esc to exit)\n"))
+	sb.WriteString("\n")
+	return sb.String()
+}
+
+func allPasswordView(m model) string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("All passwords · total %d\n\n", len(m.allPassword)))
+	for i, v := range m.allPassword {
+		if i == m.passwordIndex {
+			sb.WriteString(listItemSelectedHeaderStyle.Render(v.Name))
+			sb.WriteString("\n")
+			sb.WriteString(listItemSelectedStyle.Inherit(listItemStyle).Render(v.Email))
+			sb.WriteString("\n\n")
+		} else {
+			sb.WriteString(listItemHeaderStyle.Render(v.Name))
+			sb.WriteString("\n")
+			sb.WriteString(listItemStyle.Render(v.Email))
+			sb.WriteString("\n\n")
+		}
+
+	}
+
+	return sb.String()
+}
+
+func viewPasswordPage(m model) string {
+	var sb strings.Builder
+	sb.WriteString(m.allPassword[m.passwordIndex].Name)
+	sb.WriteString(fmt.Sprintf("\n\nEmail: %s\n", m.allPassword[m.passwordIndex].Email))
+	sb.WriteString(fmt.Sprintf("Password: %s", m.allPassword[m.passwordIndex].Password))
+
+	return sb.String()
+
+}
+
+func newPasswordView(m model) string {
+	var sb strings.Builder
+	sb.WriteString("🔑 Add new password\n\n")
+	for _, v := range m.txtInputs {
+		sb.WriteString(v.View())
+		sb.WriteString("\n")
+	}
+
+	sb.WriteString("\n")
+	if m.focusIndex == len(m.txtInputs) {
+		sb.WriteString(activeBtnStyle.Render("Save"))
+	} else {
+		sb.WriteString(btnStyle.Render("Save"))
+
+	}
+	sb.WriteString("\n")
+	sb.WriteString(displayMsgStyle.Render(m.displayMsg))
+	sb.WriteString(faintText.Render("\n(press ctrl+c or esc to exit)\n"))
 	sb.WriteString("\n")
 	return sb.String()
 }
@@ -133,11 +199,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		}
+
 	}
-	if m.authenticated {
+
+	switch m.pageIndex {
+	case loginMasterPassword:
+		return authMasterPasswordUpdate(msg, m)
+	case allPasswords:
+		return allPasswordUpdate(msg, m)
+	case viewPasswordIndex:
+		return viewPasswordUpdate(msg, m)
+	case newPasswords:
 		return newPasswordUpdate(msg, m)
 	}
-	return authMasterPasswordUpdate(msg, m)
+	return m, nil
 }
 
 func authMasterPasswordUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
@@ -167,7 +242,7 @@ func authMasterPasswordUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 				m.displayMsg = "Password and salt doesn't pair off"
 			} else {
 				m.secretKey = generateSecretKey([]byte(m.masterPassword.Value()), m.salt)
-				m.authenticated = true
+				m.pageIndex = allPasswords
 			}
 
 		}
@@ -190,6 +265,43 @@ func authMasterPasswordUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	tm, tc := m.masterPassword.Update(msg)
 	m.masterPassword = tm
 	return m, tc
+
+}
+
+func allPasswordUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyDown:
+			if m.passwordIndex >= len(m.allPassword)-1 {
+				m.passwordIndex = 0
+			} else {
+				m.passwordIndex++
+			}
+
+		case tea.KeyUp:
+			if m.passwordIndex == 0 {
+				m.passwordIndex = len(m.allPassword) - 1
+			} else {
+				m.passwordIndex--
+			}
+		case tea.KeyEnter:
+			m.pageIndex = viewPasswordIndex
+		}
+	}
+	return m, nil
+}
+
+func viewPasswordUpdate(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+	encryptedPassword := m.allPassword[m.passwordIndex].Password
+	decryptPassword, ok := decryptMsg(encryptedPassword, m.secretKey)
+	if !ok {
+		m.err = errors.New("Not decrypted")
+		return m, nil
+	}
+
+	m.allPassword[m.passwordIndex].Password = decryptPassword
+	return m, nil
 
 }
 

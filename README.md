@@ -4,6 +4,7 @@ A terminal based password manager
 
 todo
 
+encode password to hex while storing in db
 use of iota
 
 using this pattern
