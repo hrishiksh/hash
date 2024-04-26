@@ -1,15 +1,35 @@
 package main
 
 import (
+	"errors"
 	"log"
+	"os"
+	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/hrishikesh/hash/database"
 )
 
+var configDir string
+
 func main() {
 
-	err := database.InitDB("password.db")
+	var err error
+	userConfigDir, err := os.UserConfigDir()
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	// creating hash directory in user cofig directory
+	configDir = filepath.Join(userConfigDir, "hash")
+	err = os.Mkdir(configDir, 0750)
+	if err != nil && !errors.Is(err, os.ErrExist) {
+		log.Fatal(err)
+		return
+	}
+
+	err = database.InitDB(filepath.Join(configDir, "password.db"))
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -20,71 +40,4 @@ func main() {
 		log.Fatal(err)
 		return
 	}
-
-	// salt, err := generateSalt([]byte("hello-world"))
-	// if err != nil {
-	// 	log.Fatal(err)
-	// 	return
-	// }
-
-	// err = os.WriteFile("salt.txt", byteToHex(salt), 0644)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// 	return
-	// }
-
-	// saltContent, err := os.ReadFile("salt.txt")
-	// if err != nil {
-	// 	if errors.Is(err, os.ErrNotExist) {
-	// 		log.Fatal("file not exist")
-	// 		return
-	// 	}
-	// 	log.Fatal(err)
-	// 	return
-	// }
-
-	// saltbyte, err := hexToByte(saltContent)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// 	return
-	// }
-
-	// secretKey := generateSecretKey([]byte("hello-world"), saltbyte)
-
-	// encryptHex, err := encryptMessage([]byte("I am a good boy"), secretKey)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// 	return
-	// }
-
-	// err = os.WriteFile("encryptmsg.txt", encryptHex, 0644)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// 	return
-	// }
-
-	// encryptMsg, err := os.ReadFile("encryptmsg.txt")
-	// if err != nil {
-	// 	if errors.Is(err, os.ErrNotExist) {
-	// 		log.Fatal("file not exist")
-	// 		return
-	// 	}
-	// 	log.Fatal(err)
-	// 	return
-	// }
-
-	// encryptByte, err := hexToByte(encryptMsg)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// 	return
-	// }
-
-	// msg, ok := decryptMsg(encryptByte, secretKey)
-	// if !ok {
-	// 	log.Fatal("something went wrong")
-	// 	return
-	// }
-
-	// fmt.Printf("%s\n", msg)
-
 }

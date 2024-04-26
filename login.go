@@ -1,9 +1,7 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -64,15 +62,11 @@ func onLoginUpdate(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 			}
 
 		}
-	case saltFound:
-		m.salt = []byte(msg)
+
 	case error:
-		if msg == os.ErrNotExist {
-			m.err = errors.New("salt not found")
-		} else {
-			m.err = msg
-		}
+		m.err = msg
 		return m, nil
+
 	}
 
 	if m.masterPasswordFocusIndex == 0 {

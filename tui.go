@@ -1,8 +1,10 @@
 package main
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -16,9 +18,11 @@ const (
 	newPasswordPage
 	viewPasswordPage
 	updatePasswordPage
+	welcomePage
 )
 
 var (
+	lBfaintTStyle               = lipgloss.NewStyle().Faint(true).BorderStyle(lipgloss.NormalBorder()).BorderLeft(true).BorderLeftForeground(lipgloss.Color("#7D56F4")).Margin(1, 0).Padding(0, 1)
 	boldTextStyle               = lipgloss.NewStyle().Bold(true)
 	boldFaintTextStyle          = boldTextStyle.Copy().Faint(true)
 	faintTextStyle              = lipgloss.NewStyle().Faint(true)
@@ -92,7 +96,12 @@ func initialModel() Model {
 	var err error
 	m.allPassword, err = database.ReadAllPasswords()
 	if err != nil {
-		m.err = err
+		if errors.Is(err, sql.ErrNoRows) {
+			m.err = errors.New("such an empty. no password found")
+
+		} else {
+			m.err = err
+		}
 	}
 
 	return m
@@ -114,6 +123,8 @@ func (m Model) View() string {
 		return viewPasswordUI(m)
 	case updatePasswordPage:
 		return updatePasswordUI(m)
+	case welcomePage:
+		return welcomeUI(m)
 	}
 	return fmt.Sprintln("No page selected")
 }
@@ -127,7 +138,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		}
-
+	case saltFound:
+		m.salt = []byte(msg)
+	case error:
+		if errors.Is(msg, os.ErrNotExist) {
+			m.err = errors.New("secret key not found")
+			m.pageIndex = welcomePage
+			return m, nil
+		}
 	}
 
 	switch m.pageIndex {
@@ -141,6 +159,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return onNewPasswordUpdate(msg, m)
 	case updatePasswordPage:
 		return onPasswordUpdate(msg, m)
+	case welcomePage:
+		return onWelcomeUpdate(msg, m)
 	}
 	return m, nil
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/hex"
 	"os"
+	"path/filepath"
 )
 
 func byteToHex(src []byte) []byte {
@@ -19,7 +20,7 @@ func hexToByte(src []byte) ([]byte, error) {
 }
 
 func readSaltFile() ([]byte, error) {
-	hexSalt, err := os.ReadFile("salt.txt")
+	hexSalt, err := os.ReadFile(filepath.Join(configDir, "salt.txt"))
 	if err != nil {
 		return nil, err
 	}
