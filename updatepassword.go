@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -9,7 +10,8 @@ import (
 
 func updatePasswordUI(m Model) string {
 	var sb strings.Builder
-	sb.WriteString("🔑 Update password\n\n")
+	sb.WriteString(headlineStyle.Render("Update password\n"))
+	sb.WriteString("\n")
 
 	for _, v := range m.txtInputs {
 
@@ -25,9 +27,10 @@ func updatePasswordUI(m Model) string {
 
 	}
 	sb.WriteString("\n")
-	sb.WriteString(displayMsgStyle.Render(m.displayMsg))
-	sb.WriteString(faintText.Render("\n(press ctrl+c or esc to exit)\n"))
+	sb.WriteString(faintTextStyle.Render(m.err.Error()))
 	sb.WriteString("\n")
+	sb.WriteString(fmt.Sprintf("%s %s", boldFaintTextStyle.Render("ctrl+←"), faintTextStyle.Render("back ")))
+	sb.WriteString(fmt.Sprintf("%s %s", boldFaintTextStyle.Render("・ ctrl+c/esc"), faintTextStyle.Render("exit")))
 	return sb.String()
 }
 
@@ -49,6 +52,9 @@ func onPasswordUpdate(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 				m.focusIndex--
 			}
 
+		case tea.KeyCtrlLeft:
+			m.pageIndex = allPasswordsPage
+
 		case tea.KeyEnter:
 			if m.focusIndex >= 2 {
 				encryptedPassword, err := encryptMessage([]byte(m.txtInputs[2].Value()), m.secretKey)
@@ -59,7 +65,8 @@ func onPasswordUpdate(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 				if err != nil {
 					return m, func() tea.Msg { return err }
 				}
-				return m, tea.Quit
+				m.pageIndex = allPasswordsPage
+				return m, nil
 			} else {
 				m.focusIndex++
 			}

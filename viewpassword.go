@@ -10,11 +10,16 @@ import (
 
 func viewPasswordUI(m Model) string {
 	var sb strings.Builder
-	sb.WriteString(m.allPassword[m.passwordIndex].Name)
+	sb.WriteString(boldtextWBackground.Render(m.allPassword[m.passwordIndex].Name))
 	sb.WriteString(fmt.Sprintf("\n\nEmail: %s\n", m.allPassword[m.passwordIndex].Email))
 	sb.WriteString(fmt.Sprintf("Password: %s", m.allPassword[m.passwordIndex].Password))
-	sb.WriteString("\n\n")
-	sb.WriteString("(ctrl+a decrypt · ← back)")
+	sb.WriteString("\n")
+	sb.WriteString(faintTextStyle.Render(m.err.Error()))
+	sb.WriteString("\n")
+
+	sb.WriteString(fmt.Sprintf("%s %s", boldFaintTextStyle.Render("←"), faintTextStyle.Render("back ")))
+	sb.WriteString(fmt.Sprintf("%s %s", boldFaintTextStyle.Render("・ ctrl+a"), faintTextStyle.Render("decrypt ")))
+	sb.WriteString(fmt.Sprintf("%s %s", boldFaintTextStyle.Render("・ ctrl+c/esc"), faintTextStyle.Render("exit")))
 	return sb.String()
 
 }
@@ -40,8 +45,9 @@ func onviewPasswordUpdate(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case tea.KeyLeft:
-			m.pageIndex = allPasswords
+			m.pageIndex = allPasswordsPage
 		}
+
 	}
 
 	return m, nil

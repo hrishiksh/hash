@@ -11,7 +11,9 @@ import (
 
 func passwordListUI(m Model) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("All passwords · total %d\n\n", len(m.allPassword)))
+	sb.WriteString(headlineStyle.Render("All passwords "))
+	sb.WriteString(faintTextStyle.Render(fmt.Sprintf("total %d\n", len(m.allPassword))))
+	sb.WriteString("\n")
 	for i, v := range m.allPassword {
 		if i == m.passwordIndex {
 			sb.WriteString(listItemSelectedHeaderStyle.Render(v.Name))
@@ -27,7 +29,10 @@ func passwordListUI(m Model) string {
 
 	}
 
-	sb.WriteString("ctrl+n Create new password ctrl+u update ctrl+d delete ")
+	sb.WriteString(fmt.Sprintf("%s %s", boldFaintTextStyle.Render("ctrl+n"), faintTextStyle.Render("new ")))
+	sb.WriteString(fmt.Sprintf("%s %s", boldFaintTextStyle.Render("・ ctrl+u"), faintTextStyle.Render("update ")))
+	sb.WriteString(fmt.Sprintf("%s %s", boldFaintTextStyle.Render("・ ctrl+d"), faintTextStyle.Render("delete ")))
+	sb.WriteString(fmt.Sprintf("%s %s", boldFaintTextStyle.Render("・ ctrl+c/esc"), faintTextStyle.Render("exit")))
 
 	return sb.String()
 }
@@ -50,13 +55,13 @@ func onPaswordListUpdate(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 				m.passwordIndex--
 			}
 		case tea.KeyEnter:
-			m.pageIndex = viewPasswordIndex
+			m.pageIndex = viewPasswordPage
 
 		case tea.KeyCtrlN:
-			m.pageIndex = newPasswords
+			m.pageIndex = newPasswordPage
 
 		case tea.KeyCtrlU:
-			m.pageIndex = updatePasswords
+			m.pageIndex = updatePasswordPage
 			encryptedPasswordHex := m.allPassword[m.passwordIndex].Password
 			encryptedPassword, err := hexToByte(encryptedPasswordHex)
 			if err != nil {

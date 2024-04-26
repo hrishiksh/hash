@@ -11,18 +11,21 @@ import (
 )
 
 const (
-	loginMasterPassword = iota
-	allPasswords
-	newPasswords
-	viewPasswordIndex
-	updatePasswords
+	loginPage = iota
+	allPasswordsPage
+	newPasswordPage
+	viewPasswordPage
+	updatePasswordPage
 )
 
 var (
-	btnStyle                    = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF")).Background(lipgloss.Color("#7D56F4")).Padding(0, 1).Bold(true)
-	activeBtnStyle              = btnStyle.Copy().Background(lipgloss.Color("#5539a8"))
-	faintText                   = lipgloss.NewStyle().Faint(true)
-	displayMsgStyle             = lipgloss.NewStyle().Foreground(lipgloss.Color("#ef233c")).Bold(true)
+	boldTextStyle               = lipgloss.NewStyle().Bold(true)
+	boldFaintTextStyle          = boldTextStyle.Copy().Faint(true)
+	faintTextStyle              = lipgloss.NewStyle().Faint(true)
+	headlineStyle               = lipgloss.NewStyle().Foreground(lipgloss.Color("#ff006e")).Bold(true)
+	boldtextWBackground         = lipgloss.NewStyle().Bold(true).Background(lipgloss.Color("#8338ec")).Padding(0, 1)
+	btnStyle                    = boldTextStyle.Copy().Foreground(lipgloss.Color("#FFFFFF")).Padding(0, 1).Border(lipgloss.NormalBorder())
+	activeBtnStyle              = btnStyle.Copy().Foreground(lipgloss.Color("#8338ec")).BorderForeground(lipgloss.Color("#8338ec"))
 	listItemStyle               = lipgloss.NewStyle().Padding(0, 1).Faint(true)
 	listItemHeaderStyle         = listItemStyle.Copy().Bold(true).UnsetFaint()
 	listItemSelectedStyle       = listItemStyle.Copy().BorderStyle(lipgloss.NormalBorder()).BorderLeft(true).BorderLeftForeground(lipgloss.Color("#7D56F4"))
@@ -40,7 +43,6 @@ type Model struct {
 	allPassword              []database.PWItem
 	passwordIndex            int
 	err                      error
-	displayMsg               string
 }
 
 type saltFound []byte
@@ -48,7 +50,7 @@ type saltFound []byte
 func initialModel() Model {
 
 	m := Model{
-		pageIndex:     loginMasterPassword,
+		pageIndex:     loginPage,
 		focusIndex:    0,
 		txtInputs:     make([]textinput.Model, 3),
 		err:           errors.New(""),
@@ -102,15 +104,15 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) View() string {
 	switch m.pageIndex {
-	case loginMasterPassword:
+	case loginPage:
 		return loginUI(m)
-	case allPasswords:
+	case allPasswordsPage:
 		return passwordListUI(m)
-	case newPasswords:
+	case newPasswordPage:
 		return newPasswordUI(m)
-	case viewPasswordIndex:
+	case viewPasswordPage:
 		return viewPasswordUI(m)
-	case updatePasswords:
+	case updatePasswordPage:
 		return updatePasswordUI(m)
 	}
 	return fmt.Sprintln("No page selected")
@@ -129,15 +131,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch m.pageIndex {
-	case loginMasterPassword:
+	case loginPage:
 		return onLoginUpdate(msg, m)
-	case allPasswords:
+	case allPasswordsPage:
 		return onPaswordListUpdate(msg, m)
-	case viewPasswordIndex:
+	case viewPasswordPage:
 		return onviewPasswordUpdate(msg, m)
-	case newPasswords:
+	case newPasswordPage:
 		return onNewPasswordUpdate(msg, m)
-	case updatePasswords:
+	case updatePasswordPage:
 		return onPasswordUpdate(msg, m)
 	}
 	return m, nil

@@ -36,9 +36,16 @@ func InitDB(dsn string) error {
 	return nil
 }
 
-func AddNewPassword(name string, email string, password []byte) error {
-	_, err := db.Exec("INSERT INTO pwitems(name, email, password) VALUES (?1, ?2 , ?3)", name, email, password)
-	return err
+func AddNewPassword(name string, email string, password []byte) (int, error) {
+	res, err := db.Exec("INSERT INTO pwitems(name, email, password) VALUES (?1, ?2 , ?3)", name, email, password)
+	if err != nil {
+		return 0, err
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	return int(id), nil
 }
 
 func ReadAllPasswords() ([]PWItem, error) {
