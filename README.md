@@ -4,9 +4,11 @@ Hash is a terminal based password manager for everyone. If you spend most of you
 
 Watch this video to understand the functionality of Hash.
 
-<video width="auto" height="auto" controls>
-  <source src="hash-v1-trailer.mov" type="video/mp4">
-</video>
+
+
+https://github.com/hrishiksh/hash/assets/52790353/0b6259c8-79b5-46f2-9ef7-7bda866ea16d
+
+
 
 ## Motivation for this project
 
