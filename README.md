@@ -4,11 +4,7 @@ Hash is a terminal based password manager for everyone. If you spend most of you
 
 Watch this video to understand the functionality of Hash.
 
-
-
 https://github.com/hrishiksh/hash/assets/52790353/0b6259c8-79b5-46f2-9ef7-7bda866ea16d
-
-
 
 ## Motivation for this project
 
@@ -30,10 +26,10 @@ I always prefer email password based signups in websites. But managing password 
 
 - This project is written in [Golang](https://go.dev/).
 - The beautiful TUI (Terminal User Interface) is made using [BubbleTea](https://github.com/charmbracelet/bubbletea), [Bubbles](https://github.com/charmbracelet/bubbles) and [Lipgloss](https://github.com/charmbracelet/lipgloss).
-- [Bcrypt](https://pkg.go.dev/golang.org/x/crypto/bcrypt) is used for generating the Salt
-- [PBKDF2](https://pkg.go.dev/golang.org/x/crypto/pbkdf2) is used to generate the Secret Key
+- [Bcrypt](https://pkg.go.dev/golang.org/x/crypto/bcrypt) (a hash function) is used to generate the Salt.
+- [PBKDF2](https://pkg.go.dev/golang.org/x/crypto/pbkdf2) (a key derivation function) is used to generate the Secret Key.
 - [Nacl Secretbox](https://pkg.go.dev/golang.org/x/crypto/nacl/secretbox) is used to symmetrically encrypt the password.
-- All the password are [Hex encoded](https://pkg.go.dev/encoding/hex) before storing on the Database
+- All the password are [Hex encoded](https://pkg.go.dev/encoding/hex) before storing on the Database.
 - [Sqlite](https://github.com/mattn/go-sqlite3) is used to store the encrypted passwords.
 
 ## Build this project in your machine
